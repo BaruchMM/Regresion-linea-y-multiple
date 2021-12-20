@@ -1,0 +1,180 @@
+---
+title: "Regresión lineal y múltiple"
+author: "Baruch Mejía Martínez"
+date: "20/12/2021"
+output: rmarkdown::github_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
+```
+
+
+La regresión lineal ajusta una ecuación lineal a datos observados. La siguiente es una ecuación lineal
+$$Y=\beta_0+\beta_1 X$$
+
+Primero, cargamos las librerias que se utilizarán.
+```{r}
+library(readr)
+library(ggplot2)
+library(ggpubr)
+library(car)
+```
+
+## Regresión lineal simple.
+Cargamos los datos que buscamos ajustar.
+```{r}
+X = c(18, 13 ,18 ,15 ,10 ,12 ,8 ,4, 7, 3)
+Y = c(23, 20, 18, 16, 14, 11 ,10 ,7 ,6 ,4 )
+datos = data.frame(Y, X)
+n=dim(datos)[1]
+datos
+```
+Hacemos la regresión lineal con X = Methadone_Dose, Y = QTc
+```{r}
+model = lm(Y ~ X, datos)
+r=summary(model)$r.squared
+summary(model)
+```
+
+Obtenemos la ecuación de regresión
+$$Y = 1.0823 X +1.2112$$
+### R-Cuadrado:
+El R-cuadrado es una medida estadística de qué tan cerca están los datos de la línea de regresión ajustada. 
+El R-cuadrado siempre está entre 0 y 100%:
+
+*   0% indica que el modelo no explica ninguna porción de la variabilidad de los datos de respuesta en torno a su media.
+*   100% indica que el modelo explica toda la variabilidad de los datos de respuesta en torno a su media.
+
+Calculamos el *coeficiente de determinación* $r^2$
+```{r}
+print(r)
+```
+```{r}
+sqrt_r=sqrt(r)
+sqrt_r
+```
+y calculamos el coeficiente de correlación de Pearson r
+```{r}
+cor(Y,X)
+```
+Calculamos un intervalo de confianza y de predicción del modelo para una $X = 12$
+```{r}
+predict(model,data.frame(X=12), interval = "confidence")
+```
+```{r}
+predict(model,data.frame(X=12), interval = "predict")
+```
+Finalmente graficamos.
+```{r}
+nuevas.x=data.frame(X=seq(0,25,by=25/(n)))
+ic=predict(model, nuevas.x,interval = "confidence")
+ip=predict(model, nuevas.x,interval = "prediction")
+plot(Y,X,pch = 19, frame = TRUE,grid()) +abline(lm(Y ~ X,datos),col="red")+lines(nuevas.x$X,ic[,2],lty=2)+lines(nuevas.x$X,ic[,3],lty=2,col="black")+lines(nuevas.x$X,ip[,2],lty=2)+lines(nuevas.x$X,ip[,3],lty=2)
+```
+### Prueba de hipótesis de la regresión lineal simple.
+Definiendo $H_0:\beta_1=0$; $H_A:\beta_1\neq0$
+Esto nos dice que si $H_0:\beta_1=0$ el ajuste lineal no necesariamente representa bien los datos. Si se cumple que $H_A:\beta_1\neq0$ la regresión lineal hace un buen ajuste de los datos.
+
+Se puede usar ANOVA y el test t
+
+**Para ANOVA:**  si VR$\geq F$ rechazamos $H_0$
+
+**Para T-test:**  si t-test$\geq t$ rechazamos $H_0$
+```{r}
+anova(model)
+```
+Calculamos F-value, usando DF1=1 y DF2=8, significancia al 0.05
+```{r}
+qf(0.95,1,8)
+```
+F-value$\geq$qf rechazamos $H_0$. también p$< 0.05$ rechazamos $H_0$.
+```{r}
+t_test=(model)
+summary(t_test)
+```
+Calculamos t
+```{r}
+qnorm(1-0.05/2)
+```
+Obtenemos T-test$=6.283>t=1.96$, rechazamos $H_0$.
+
+p-value$< 0.05$, rechazamos $H_0$
+
+
+
+
+## Regresión lineal múltiple
+
+Cargamos los datos a utilizar.
+```{r}
+y = c(61.6,53.2,65.5,64.9,72.7,52.2,50.2,44,53.8,53.5)
+x1 = c(6,4.4,9.1,8.1,9.7,4.8,7.6,4.4,9.1,6.7)
+x2 = c(6.3,5.5,3.6,5.8,6.8,7.9,4.2,6,2.8,6.7)
+datos=data.frame(y,x1,x2)
+```
+Hacemos el ajuste lineal múltiple
+
+```{r}
+model = lm(y ~ x1 + x2, datos)
+summary(model)
+```
+Obtenemos la ecuación de regresión
+$$Y = 4.017 X_1 + 2.812 X_2 + 13.449 $$
+Calculamos el **coeficiente de determinación múltiple**.
+Obtenemos “Multiple R-square=  0.6682".
+
+Agregar sobre el coeficiente de correlación de varios órdenes
+
+### Prueba de hipótesis Regresión múltiple
+
+Usamos ANOVA y T-test con la prueba de hipótesis
+$$H_0: \beta_1=0 \phantom{a}\beta_2=0 \phantom{aaa} H_A: \beta_1\neq 0 \phantom{a}\beta_2\neq0 $$
+
+**Regla de desición (ANOVA):** si VR$_1$,VR$_2> C$ entonces rechazamos $H_0$
+
+
+**Regla de desición (T-test):** si T-value$_1$,T-value$_2> $qt entonces rechazamos $H_0$
+```{r}
+anova(model)
+```
+
+```{r}
+k = 2
+N = length(x1) + length(y) + length(x2)
+C = qf(0.05,k,N-k-1,lower.tail = FALSE)
+N
+```
+```{r}
+lm(y ~ x1 + x2, datos)$df
+```
+Dado que VR$_1$,VR$_2> C$ entonces rechazamos $H_0$.
+
+$P_1,P_2 < 0.05$, entonces rechazamos $H_0$.
+
+Calculamos T-value$_{1,2}$
+```{r}
+summary(model)
+```
+Calculamos T para 7 grados de libertad
+```{r}
+qt(1-0.05/2,7)
+```
+Ya que T-value$_1$,T-value$_2> $qt entonces rechazamos $H_0$.
+
+Ya que p-value$< 0.05$, entonces rechazamos $H_0$.
+```{r}
+avPlots(model)
+```
+
+
+
+
+
+
+
+
+
+
